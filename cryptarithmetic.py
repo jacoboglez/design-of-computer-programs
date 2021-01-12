@@ -48,13 +48,20 @@ def solve(formula):
 
 def compile_formula(formula):
     """Compile formula into a function. Also return letters found, as a str,
-    in same order as params of function. For example, 'YOU == ME**2 returns
+    in same order as params of function. The first digit of a multi-digit
+    number can't be 0. For example, 'YOU == ME**2 returns
     (lambda Y, M, E, U, O: (U+10*O+100*Y) == (E+10*M)**2), 'YMEUO' """  
     letters = ''.join( set(c for c in formula if c.isupper()) )
     params = ', '.join(letters)
-
     tokens = map(compile_word, re.split('([A-Z]+)', formula))
     body = ''.join(tokens)
+    
+    # Check for leading 0
+    firstletters = set(re.findall(r'\b([A-Z])[A-Z]', formula))
+    if firstletters:
+        tests = ' and '.join(L+'!=0' for L in firstletters)
+        body = f'{tests} and ({body})'
+    
     f = f'lambda {params}: {body}'
     return eval(f), letters
 
@@ -109,6 +116,13 @@ def test():
     assert compile_word('YOU') == '(1*U+10*O+100*Y)'
     assert compile_word('AA') == '(1*A+10*A)'
 
+    # Test function compile_formula
+    f, letters = compile_formula('A + B == BA')
+    if letters == 'AB':
+        assert f(1,0) == False
+    else:
+        assert f(0, 1) == False
+
     # Test some solutions
     assert next(solve("X / X == X")) == "1 / 1 == 1"
     assert next(solve("sum(range(AA)) == BB")) == "sum(range(11)) == 55"
@@ -132,3 +146,4 @@ test()
 
 if __name__ == "__main__":
     solve_examples(3)
+    
